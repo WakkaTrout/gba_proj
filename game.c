@@ -1,4 +1,4 @@
-// Startup Assembly (A.I Generated (along with the linker script, need to double check this is correc))
+// Startup Assembly (A.I Generated (along with the linker script, need to double check this is correct))
 __asm__ (
     ".section .text.header\n"
     ".arm\n"
