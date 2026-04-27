@@ -8,6 +8,7 @@ MEMORY
 	rom (rx)    : ORIGIN = 0x08000000, LENGTH = 32M
 	iwram (rwx) : ORIGIN = 0x03000000, LENGTH = 32K
 	ewram (rwx) : ORIGIN = 0x02000000, LENGTH = 256K
+	/* vram (rwx)? : ORIGIN = ??, LENGTH = 96K */
 }
 SECTIONS
 {
