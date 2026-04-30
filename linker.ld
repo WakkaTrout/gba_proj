@@ -5,10 +5,11 @@ ENTRY(_start)
 
 MEMORY
 {
+	/* cart_ram(rwx) : ORIGIN = 0x0E000000, LENGTH = ? */
 	rom (rx)    : ORIGIN = 0x08000000, LENGTH = 32M
+	/* vram (rwx)? : ORIGIN = 0x06000000, LENGTH = 96K */
 	iwram (rwx) : ORIGIN = 0x03000000, LENGTH = 32K
 	ewram (rwx) : ORIGIN = 0x02000000, LENGTH = 256K
-	/* vram (rwx)? : ORIGIN = ??, LENGTH = 96K */
 }
 SECTIONS
 {
