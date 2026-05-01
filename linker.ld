@@ -1,5 +1,4 @@
 /* GBA Linker Script */
-OUTPUT_FORMAT("binary")
 OUTPUT_ARCH(arm)
 ENTRY(_start)
 
@@ -10,6 +9,7 @@ MEMORY
 	/* vram (rwx)? : ORIGIN = 0x06000000, LENGTH = 96K */
 	iwram (rwx) : ORIGIN = 0x03000000, LENGTH = 32K
 	ewram (rwx) : ORIGIN = 0x02000000, LENGTH = 256K
+	file_img (w)  : ORIGIN = 0x00000000, LENGTH = 32M
 }
 SECTIONS
 {
@@ -17,14 +17,14 @@ SECTIONS
 	.text.header :
 	{
 		KEEP(*(.text.header)) /* Must be at 0x08000000 */
-	} > rom AT(0)
+	} > rom AT > file_img
 	/* 2. Main Code and Read-Only Data */
 	.text :
 	{
 		*(.text .text.*)
 		*(.rodata .rodata.*)
 		. = ALIGN(4);
-	} > rom AT(LOADADDR(.text.header) + SIZEOF(.text.header))
+	} > rom AT > file_img
 	/* 3. IWRAM (Internal Working RAM) - Fast 32-bit access */
 	/* Often used for the stack and performance-critical functions */
 	.iwram :
@@ -33,7 +33,7 @@ SECTIONS
 		*(.iwram .iwram.*)
 		. = ALIGN(4);
 		_iwram_end = .;
-	} > iwram AT(LOADADDR(.text) + SIZEOF(.text))
+	} > iwram AT > file_img
 	_iwram_rom_start = LOADADDR(.iwram);
 	/* 4. EWRAM (External Working RAM) - Larger but slower 16-bit access */
 	.data :
@@ -42,7 +42,7 @@ SECTIONS
 		*(.data .data.*)
 		. = ALIGN(4);
 		_data_end = .;
-	} > ewram AT(LOADADDR(.iwram) + SIZEOF(.iwram))
+	} > ewram AT > file_img
 	_data_rom_start = LOADADDR(.data);
 	/* 5. BSS (Zero-initialized data) */
 	.bss :
