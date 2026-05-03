@@ -34,11 +34,131 @@ __asm__ (
     "    b main\n"            // Jump to C
 );
 
+#include <stdint.h>
+
+//MEMORIES
+
+//VRAM
+#define VRAM 0x06000000
+
+
+//IO Registers
+#define IOREGS 0x04000000
+//IOREGS + 0x6
+#define VCOUNT 0x04000006
+//IOREGS + 0x130
+#define INPUTS 0x04000130
+
+
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 160
+//mode 3 treats VRAM as a 240x160 bitmap
 
 __attribute__((noreturn)) void main( void )
 {
+    volatile unsigned char *ioram = (unsigned char *)IOREGS;
+    ioram[0] = 0x03; // Use video mode 3 (in BG2, a 16bpp bitmap in VRAM)
+    ioram[1] = 0x04; // Enable BG2 (BG0 = 1, BG1 = 2, BG2 = 4, ...)
+
+    volatile uint16_t *vram = (uint16_t *)VRAM;
+    for( uint16_t pixelRow = 0; pixelRow < SCREEN_HEIGHT; ++pixelRow )
+    {
+        for( uint16_t pixelCol = 0; pixelCol < SCREEN_HEIGHT; ++pixelCol )
+        {
+            vram[pixelRow*SCREEN_WIDTH + pixelCol] = 0x03E0;
+        }
+    }
+    
+    uint16_t currentRed = 31;
+    uint16_t currentGreen = 20;
+    uint16_t currentBlue = 5;
+
+    uint16_t btnStates = 0;
+    uint16_t aWasPressed = 0;
+    uint16_t bWasPressed = 0;
+    uint16_t selectWasPressed = 0;
+    uint16_t startWasPressed = 0;
+    uint16_t rightWasPressed = 0;
+    uint16_t leftWasPressed = 0;
+    uint16_t upWasPressed = 0;
+    uint16_t downWasPressed = 0;
+    uint16_t rightBumperWasPressed = 0;
+    uint16_t leftBumperWasPressed = 0;
     for(;;)
     {
         //TODO: The game
+
+        // Skip past the rest of any current V-Blank, then skip past
+        // the V-Draw
+        while(VCOUNT >= 160); //wait until screen refresh
+        while(VCOUNT <  160); //wait for screen refresh to finish
+
+        uint16_t inputReg = *(volatile uint16_t*)INPUTS;
+        btnStates = ~inputReg & 0x03FF;
+
+        //todo debouncing
+        uint16_t aPressed = btnStates & 0x0001;
+        uint16_t bPressed = btnStates & 0x0002;
+        uint16_t selectPressed = btnStates & 0x0004;
+        uint16_t startPressed = btnStates & 0x0008;
+        uint16_t rightPressed = btnStates & 0x0010;
+        uint16_t leftPressed = btnStates & 0x0020;
+        uint16_t upPressed = btnStates & 0x0040;
+        uint16_t downPressed = btnStates & 0x0080;
+        uint16_t rightBumperPressed = btnStates & 0x0100;
+        uint16_t leftBumperPressed = btnStates & 0x0200;
+        if(upPressed)
+        {
+            uint16_t nextRed = currentRed + 1;
+            currentRed = nextRed < 32 ? nextRed : 31;
+        }
+        if(downPressed)
+        {
+            uint16_t nextRed = currentRed - 1;
+            currentRed = currentRed != 0 ? nextRed : 0;
+        }
+        if(rightPressed)
+        {
+            uint16_t nextGreen = currentGreen + 1;
+            currentGreen = nextGreen < 32 ? nextGreen : 31;
+        }
+        if(leftPressed)
+        {
+            uint16_t nextGreen = currentGreen - 1;
+            currentGreen = currentGreen != 0 ? nextGreen : 0;
+        }
+        if(aPressed)
+        {
+            uint16_t nextBlue = currentBlue + 1;
+            currentBlue = nextBlue < 32 ? nextBlue : 31;
+        }
+        if(bPressed)
+        {
+            uint16_t nextBlue = currentBlue - 1;
+            currentBlue = currentBlue != 0 ? nextBlue : 0;
+        }
+        aWasPressed = aPressed;
+        bWasPressed = bPressed;
+        selectWasPressed = selectPressed;
+        startWasPressed = startPressed;
+        rightWasPressed = rightPressed;
+        leftWasPressed = leftPressed;
+        upWasPressed = upPressed;
+        downWasPressed = downPressed;
+        rightBumperWasPressed = rightBumperPressed;
+        leftBumperWasPressed = leftBumperPressed;
+
+
+        uint16_t currentColor = (uint16_t)(currentRed | (currentGreen << 5) | (currentBlue << 10));
+        volatile uint16_t *pixRow = (uint16_t *)VRAM;
+        for( uint16_t pixelRow = 0; pixelRow < SCREEN_HEIGHT; ++pixelRow )
+        {
+            volatile uint16_t *pixRowEnd = pixRow + SCREEN_WIDTH;
+            while( pixRow != pixRowEnd )
+            {
+                *pixRow = currentColor;
+                ++pixRow;
+            }
+        }
     }
 }

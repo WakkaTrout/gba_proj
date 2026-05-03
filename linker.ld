@@ -6,7 +6,10 @@ MEMORY
 {
 	/* cart_ram(rwx) : ORIGIN = 0x0E000000, LENGTH = ? */
 	rom (rx)    : ORIGIN = 0x08000000, LENGTH = 32M
+	/* oamram (rwx)? : ORIGIN = 0x07000000, LENGTH = 1024 */
 	/* vram (rwx)? : ORIGIN = 0x06000000, LENGTH = 96K */
+	/* palette (rwx)? : ORIGIN = 0x05000000, LENGTH = 1024 */
+	/* io (rwx)? : ORIGIN = 0x04000000, LENGTH = 1024 */
 	iwram (rwx) : ORIGIN = 0x03000000, LENGTH = 32K
 	ewram (rwx) : ORIGIN = 0x02000000, LENGTH = 256K
 	file_img (w)  : ORIGIN = 0x00000000, LENGTH = 32M
