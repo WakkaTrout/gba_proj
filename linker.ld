@@ -21,6 +21,7 @@ SECTIONS
 	{
 		KEEP(*(.text.header)) /* Must be at 0x08000000 */
 	} > rom AT > file_img
+
 	/* 2. Main Code and Read-Only Data */
 	.text :
 	{
@@ -28,6 +29,7 @@ SECTIONS
 		*(.rodata .rodata.*)
 		. = ALIGN(4);
 	} > rom AT > file_img
+
 	/* 3. IWRAM (Internal Working RAM) - Fast 32-bit access */
 	/* Often used for the stack and performance-critical functions */
 	.iwram :
@@ -36,8 +38,12 @@ SECTIONS
 		*(.iwram .iwram.*)
 		. = ALIGN(4);
 		_iwram_end = .;
-	} > iwram AT > file_img
+	} > iwram AT > file_img /* TODO: Do we even need this in the file_img? Isn't it all ephemeral? */
 	_iwram_rom_start = LOADADDR(.iwram);
+
+	/* Stack pointer initialization (End of IWRAM) */
+	__sp_usr = ORIGIN(iwram) + LENGTH(iwram);
+
 	/* 4. EWRAM (External Working RAM) - Larger but slower 16-bit access */
 	.data :
 	{
@@ -45,8 +51,9 @@ SECTIONS
 		*(.data .data.*)
 		. = ALIGN(4);
 		_data_end = .;
-	} > ewram AT > file_img
-	_data_rom_start = LOADADDR(.data);
+	} > ewram AT > file_img /* TODO: Do we even need this in the file_img? Isn't it all ephemeral? */
+	_data_rom_start = LOADADDR(.data); /* TODO: What was this generated for? Should the data section be moved to iwram (the stack is there though)?*/
+
 	/* 5. BSS (Zero-initialized data) */
 	.bss :
 	{
@@ -55,7 +62,5 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		_bss_end = .;
-	} > ewram
-	/* Stack pointer initialization (End of IWRAM) */
-	__sp_usr = ORIGIN(iwram) + LENGTH(iwram);
+	} > ewram /* TODO: Re-evaulate if the BSS should be in the ewram*/
 }
