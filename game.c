@@ -44,26 +44,34 @@ __asm__ (
 
 //IO Registers
 #define IOREGS 0x04000000
+//IOREGS + 0x0
+#define DISPCNT 0x04000000
+//IOREGS + 0x4
+#define DISPSTAT 0x04000004
 //IOREGS + 0x6
 #define VCOUNT 0x04000006
 //IOREGS + 0x130
 #define INPUTS 0x04000130
+//IOREGS + 0x204
+#define WAITCNT 0x04000204
 
 
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 160
 //mode 3 treats VRAM as a 240x160 bitmap
 
+//http://cdn.preterhuman.net/texts/gaming_and_diversion/Gameboy%20Advance%20Programming%20Manual%20v1.1.pdf
+
 __attribute__((noreturn)) void main( void )
 {
-    volatile unsigned char *ioram = (unsigned char *)IOREGS;
+    volatile unsigned char *ioram = (unsigned char *)DISPCNT;
     ioram[0] = 0x03; // Use video mode 3 (in BG2, a 16bpp bitmap in VRAM)
     ioram[1] = 0x04; // Enable BG2 (BG0 = 1, BG1 = 2, BG2 = 4, ...)
 
     volatile uint16_t *vram = (uint16_t *)VRAM;
     for( uint16_t pixelRow = 0; pixelRow < SCREEN_HEIGHT; ++pixelRow )
     {
-        for( uint16_t pixelCol = 0; pixelCol < SCREEN_HEIGHT; ++pixelCol )
+        for( uint16_t pixelCol = 0; pixelCol < SCREEN_WIDTH; ++pixelCol )
         {
             vram[pixelRow*SCREEN_WIDTH + pixelCol] = 0x03E0;
         }
@@ -84,17 +92,19 @@ __attribute__((noreturn)) void main( void )
     uint16_t downWasPressed = 0;
     uint16_t rightBumperWasPressed = 0;
     uint16_t leftBumperWasPressed = 0;
+    uint8_t notPaused = 1;
     for(;;)
     {
         //TODO: The game
 
         // Skip past the rest of any current V-Blank, then skip past
         // the V-Draw
-        while(VCOUNT >= 160); //wait until screen refresh
-        while(VCOUNT <  160); //wait for screen refresh to finish
+        while((*(volatile unsigned char *)VCOUNT) >= 160); //wait until screen refresh
+        //todo skybox draw
+        while((*(volatile unsigned char *)VCOUNT) <  160); //wait for screen refresh to finish
 
         uint16_t inputReg = *(volatile uint16_t*)INPUTS;
-        btnStates = ~inputReg & 0x03FF;
+        btnStates = (~inputReg) & 0x03FF;
 
         //todo debouncing
         uint16_t aPressed = btnStates & 0x0001;
@@ -137,6 +147,10 @@ __attribute__((noreturn)) void main( void )
             uint16_t nextBlue = currentBlue - 1;
             currentBlue = currentBlue != 0 ? nextBlue : 0;
         }
+        if(startWasPressed != startPressed && startPressed)
+        {
+            notPaused = notPaused ^ 1;
+        }
         aWasPressed = aPressed;
         bWasPressed = bPressed;
         selectWasPressed = selectPressed;
@@ -148,17 +162,21 @@ __attribute__((noreturn)) void main( void )
         rightBumperWasPressed = rightBumperPressed;
         leftBumperWasPressed = leftBumperPressed;
 
-
-        uint16_t currentColor = (uint16_t)(currentRed | (currentGreen << 5) | (currentBlue << 10));
-        volatile uint16_t *pixRow = (uint16_t *)VRAM;
-        for( uint16_t pixelRow = 0; pixelRow < SCREEN_HEIGHT; ++pixelRow )
+        if(notPaused)
         {
-            volatile uint16_t *pixRowEnd = pixRow + SCREEN_WIDTH;
-            while( pixRow != pixRowEnd )
+            uint16_t currentColor = (uint16_t)(currentRed | (currentGreen << 5) | (currentBlue << 10));
+            volatile uint16_t *pixRow = (uint16_t *)VRAM;
+            for( uint16_t pixelRow = 0; pixelRow < SCREEN_HEIGHT; ++pixelRow )
             {
-                *pixRow = currentColor;
-                ++pixRow;
+                volatile uint16_t *pixRowEnd = pixRow + SCREEN_WIDTH;
+                while( pixRow != pixRowEnd )
+                {
+                    *pixRow = currentColor;
+                    ++pixRow;
+                }
             }
         }
+        //if double buffered mode 4
+        //vram ^= VRAM_PAGE_SIZE;
     }
 }
