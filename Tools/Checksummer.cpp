@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-const char header_string[] = "LOMBAT\0\0\0\0\0\0CLTE8P\x96\0\0\0\0\0\0\0\0\0\0";
+const char header_string[] = "LOMBAX\0\0\0\0\0\0CLXE8P\x96\0\0\0\0\0\0\0\0\0\0";
 
 inline void gbachecksum()
 {
